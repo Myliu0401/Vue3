@@ -1,67 +1,62 @@
 <template>
   <div>
-    
-  <div class="app">
-    <div class="app_todos">
-      <h1 class="todos_head">todos
-      </h1>
-      <div v-if="isBol" >1</div>
-  <div v-else >2</div>
-  <button @click="qiehuan">切换</button>
-      <div class="todos_inputBox">
-        <span class="box"></span>
-        <input
-          class="input"
-          placeholder="请输入"
-          v-model="taskName"
-          @keyup.enter="myAddTask"
-        />
-      </div>
-      <div class="todos_content">
-        <ul class="content_main">
-          <li class="item" v-for="item in list" :key="item.id">
+    <div class="app">
+      <div class="app_todos">
+        <h1 class="todos_head">todos</h1>
+        <div v-if="isBol">1</div>
+        <div v-else>2</div>
+        <button @click="qiehuan">切换</button>
+        <div class="todos_inputBox">
+          <span class="box"></span>
+          <input
+            class="input"
+            placeholder="请输入"
+            v-model="taskName"
+            @keyup.enter="myAddTask"
+          />
+        </div>
+        <div class="todos_content">
+          <ul class="content_main">
+            <li class="item" v-for="item in list" :key="item.id">
+              <span
+                class="item_box"
+                :class="{ active: item.completed }"
+                @click="mySetTaskCompleted(item.id)"
+              ></span>
+              <p class="item_text">{{ item.name }}</p>
+              <span class="item_close" @click="myRemoveTask(item.id)">X</span>
+            </li>
+          </ul>
+        </div>
+        <div class="todos_tail">
+          <span class="num">{{ taskLength }}个</span>
+          <div class="options">
             <span
-              class="item_box"
-              :class="{ active: item.completed }"
-              @click="mySetTaskCompleted(item.id)"
-            ></span>
-            <p class="item_text">{{ item.name }}</p>
-            <span class="item_close" @click="myRemoveTask(item.id)">X</span>
-          </li>
-        </ul>
-      </div>
-      <div class="todos_tail">
-        <span class="num">{{ taskLength }}个</span>
-        <div class="options">
-          <span
-            class="num"
-            :class="{ active: currentType === 'all' }"
-            @click="setCurrentType('all')"
-            >全部</span
-          >
-          <span
-            class="num"
-            :class="{ active: currentType === 'active' }"
-            @click="setCurrentType('active')"
-            >已完成</span
-          >
-          <span
-            class="num"
-            :class="{ active: currentType === 'unselected' }"
-            @click="setCurrentType('unselected')"
-            >未完成</span
+              class="num"
+              :class="{ active: currentType === 'all' }"
+              @click="setCurrentType('all')"
+              >全部</span
+            >
+            <span
+              class="num"
+              :class="{ active: currentType === 'active' }"
+              @click="setCurrentType('active')"
+              >已完成</span
+            >
+            <span
+              class="num"
+              :class="{ active: currentType === 'unselected' }"
+              @click="setCurrentType('unselected')"
+              >未完成</span
+            >
+          </div>
+          <span class="num" :class="{ none: !isBUt }" @click="clearIncomplete"
+            >清除未完成</span
           >
         </div>
-        <span class="num" :class="{ none: !isBUt }" @click="clearIncomplete"
-          >清除未完成</span
-        >
       </div>
     </div>
-
-
   </div>
-  
-</div>
 </template>
 
 <script>
@@ -72,11 +67,12 @@ import { getCurrentInstance, ref } from "vue";
 export default {
   name: "App",
   components: {},
-  updated(){
-     console.log('更新了')
+  updated() {
+    console.log("更新了");
   },
   setup() {
     window.aa = getCurrentInstance().proxy;
+    window.bb = getCurrentInstance();
 
     const tasks = useTaskList();
 
@@ -84,11 +80,11 @@ export default {
 
     const numRef = ref(0);
 
-    window.setNumRef = ()=>{
-      numRef.value++
+    window.setNumRef = () => {
+      numRef.value++;
     };
 
-    window.setNumRef()
+    window.setNumRef();
 
     return {
       ...tasks,

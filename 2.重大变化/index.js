@@ -20,7 +20,24 @@
                   errorComponent: 组件,   // 当loader函数的promise出错时显示的组件
            defineAsyncComponent这个函数返回一个组件，将该返回的组件放置到vue配置对象的 components中
 
-           vue2中异步组件是只有 在components中直接 import('../')
+           vue2中异步组件是
+              componetns: {
+                组件名: {
+                   // 需要加载的组件 (应该是一个 `Promise` 对象)
+                   component: promise,
+                   // 异步组件加载时使用的组件
+                   loading: LoadingComponent,
+                   // 加载失败时使用的组件
+                   error: ErrorComponent,
+                   // 展示加载时组件的延时时间。默认值是 200 (毫秒)
+                   delay: 200,
+                   // 如果提供了超时时间且组件加载也超时了，
+                   // 则使用加载失败时使用的组件。默认值是：`Infinity`
+                   // PS: 组件加载超时时间，超时表示加载失败，会展示ErrorComponent。
+                   // 比如在这里当我们把 Promise 中的 setTimeout 改为 4000的时候，则会展示 ErrorComponent
+                   timeout: 3000
+                }
+              }
 
 
       vue实例
@@ -37,9 +54,9 @@
 
     配置对象
       setup函数。参数为  props 属性、ctx 上下文
-          改函数在所有生命周期函数之前调用，并且只会执行一次
-          改函数的this为undefined
-          改函数返回的对象里的所有属性都会被挂载到实例上
+          该函数在所有生命周期函数之前调用，并且只会执行一次
+          该函数的this为undefined
+          该函数返回的对象里的所有属性都会被挂载到实例上
        
 
 
