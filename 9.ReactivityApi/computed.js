@@ -77,7 +77,7 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
 
     this._dirty = true; // 是否为脏值，也就是是否更新
 
-  }
+  };
 
 
   // 读取value时运行

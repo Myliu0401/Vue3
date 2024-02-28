@@ -13,7 +13,7 @@
             
                 computed函数    计算属性，对依赖进行收集和缓存。返回一个代理对象，value值为回调返回的结果
                     参数为回调函数   
-                      当读取value时，会根据情况决定时候要运行回到函数
+                      当读取value时，会根据情况决定需要运行回调函数
 
 
         
@@ -58,7 +58,7 @@
 
          判断
            具名导出
-             isProxy函数     判断某个数据是否是有 reactive或readonly 创建的
+             isProxy函数     判断某个数据是否是由 reactive或readonly 创建的
              isReactive函数  判断某个数据是否是通过reactive创建的
              isReadonly函数  判断某个数据是否通过readonly创建的
              isRef函数       判断某个数据是否是一个ref对象

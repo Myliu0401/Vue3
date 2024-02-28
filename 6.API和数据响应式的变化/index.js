@@ -17,7 +17,7 @@
           vue3中，去掉了Vue构造函数，改用createApp来创建vue应用
            createApp(...).use(...).minxin(...).component(...).mount('#app1')
            createApp(...).use(...).minxin(...).component(...).mount('#app2')
-           vue3将全局注册的这些api提到了vue实例中，全局注册时，也不会影响其他vue应用。
+           vue3将全局注册的这些api提到了vue应用中，全局注册时，也不会影响其他vue应用。
            
 
         答案
@@ -32,7 +32,7 @@
 
 
        对vue3数据响应式的理解
-         vue3不再使用Object.defineProperty的方式定义完成数据响应式，而是使用了Proxy。
+         vue3不再使用Object.defineProperty的方式来完成数据响应式，而是使用了Proxy。
          除了Proxy本身效率比Object.defineProperty更高之外，由于不必递归遍历所有属性，而是直接得到一个Proxy。
          所以在vue3中，对数据的访问是动态的，当访问某个属性时，再动态的获取和设置，这极大的提升了在组件初始阶段的效率。
          同时，由于Proxy可以监控到成员的增删，因此，在vue3中新增成员、删除成员、索引访问等均可以触发重新渲染，而这些在vue2中难以做到。

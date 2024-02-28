@@ -32,6 +32,9 @@ const TargetType = {
 };
 
 
+function isReadonly(value){
+    return value.__v_readonly;
+};
 
 
 export function reactive(target) {
@@ -87,7 +90,7 @@ function createReactiveObject(
     return target;
   }
 
-  // 判断目标对象是否存在原始对象，并且不是只读且已经被转换为响应式对象。
+  // 判断目标对象是否已经是响应式对象，并且不是只读的
   if (target[ReactiveFlags.RAW] && !(isReadonly && target[ReactiveFlags.IS_REACTIVE])) {
     return target;
   }
@@ -280,6 +283,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     // 判断是否是数组并且索引是整数的   hasOwn判断原始数据中是否有指定的键
     const hadKey = isArray(target) && isIntegerKey(key) ? Number(key) < target.length : hasOwn(target, key);
 
+    // Reflect为反射
 
     const result = Reflect.set(target, key, value, receiver); // 修改/设置 属性
 

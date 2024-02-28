@@ -44,4 +44,8 @@
 
 
 
+            Captured   吐音 轻吹
+            Tracked    吐音 崔可
+            Triggered  吐音 崔肯
+            option     吐音 啊顺
  */
