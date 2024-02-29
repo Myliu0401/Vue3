@@ -92,7 +92,7 @@ data.message = 'Hello, Vue 2!';
 function observe(obj) {
     if (!obj || typeof obj !== 'object') {
         return;
-    }
+    };
 
     Object.keys(obj).forEach(function (key) {
         defineReactive(obj, key, obj[key]);
@@ -122,6 +122,8 @@ function defineReactive(obj, key, val, customSetter, shallow) {
     // cater for pre-defined getter/setters
     const getter = property && property.get; // 获取读取的运行函数
     const setter = property && property.set; // 获取修改的运行函数
+
+    // 没有读取的运行函数或者有修改的运行函数 并且 只有两个实参
     if ((!getter || setter) && arguments.length === 2) {
         val = obj[key]; // 获取属性值
     };
@@ -154,8 +156,8 @@ function defineReactive(obj, key, val, customSetter, shallow) {
 
             // 旧值与新值是否相等
             if (newVal === value || (newVal !== newVal && value !== value)) {
-                return
-            }
+                return // 新旧值相等则结束
+            };
 
 
             val = newVal; // 更新作用域中的旧值
@@ -165,7 +167,7 @@ function defineReactive(obj, key, val, customSetter, shallow) {
 
             dep.notify(); // 派发更新
         }
-    })
+    });
 };
 
 
@@ -191,20 +193,49 @@ class Dep {
     depend() {
         if (Dep.target) {
             Dep.target.addDep(this); // 在watcher实例中添加dep实例
+            this.addSub(Dep.target) // 在dep实例中添加watcher实例
         }
     }
 
     notify() {
-        // stabilize the subscriber list first
-        const subs = this.subs.slice()
-        if (process.env.NODE_ENV !== 'production' && !config.async) {
-            // subs aren't sorted in scheduler if not running async
-            // we need to sort them now to make sure they fire in correct
-            // order
-            subs.sort((a, b) => a.id - b.id);
-        };
+
+        const subs = this.subs.slice(); // 截取全部项
+
         for (let i = 0, l = subs.length; i < l; i++) {
-            subs[i].update();
+            subs[i].update(); // 进行更新重渲染
         };
     }
-}
+};
+
+
+
+function Watcher(vm, expOrFn, cb) {
+    this.vm = vm;
+    this.getter = parsePath(expOrFn);
+    this.cb = cb;
+    this.value = this.get();
+};
+
+Watcher.prototype.get = function () {
+    Dep.target = this;
+    var value = this.getter.call(this.vm, this.vm); // 获取虚拟树
+    Dep.target = null;
+    return value;
+};
+
+Watcher.prototype.update = function () {
+    var oldValue = this.value; // 旧虚拟树
+    this.value = this.get(); // 获取新虚拟树
+    this.cb.call(this.vm, this.value, oldValue); // 进行新旧虚拟树的对比并进行更新渲染
+};
+
+function parsePath(path) {
+    var segments = path.split('.');
+    return function (obj) {
+        for (var i = 0; i < segments.length; i++) {
+            if (!obj) return;
+            obj = obj[segments[i]];
+        }
+        return obj;
+    };
+};
