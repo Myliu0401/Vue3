@@ -181,7 +181,11 @@ class Dep {
         this.id = uid++
         this.subs = []
     }
-
+    
+    /**
+     * 
+     * @param {*} sub 当前 Dep.target 的 wachter
+     */
     addSub(sub) {
         this.subs.push(sub)
     }
@@ -193,7 +197,7 @@ class Dep {
     depend() {
         if (Dep.target) {
             Dep.target.addDep(this); // 在watcher实例中添加dep实例
-            this.addSub(Dep.target) // 在dep实例中添加watcher实例
+           // this.addSub(Dep.target) // 在dep实例中添加watcher实例
         }
     }
 

@@ -79,10 +79,10 @@ function createComputedGetter(key) {
 
             // 判断是否是脏值
             if (watcher.dirty) {
-                watcher.evaluate();
+                watcher.evaluate(); // 会使该计算属性的依赖项收集到计算属性的wachter
             }
             if (Dep.target) {
-                watcher.depend();
+                watcher.depend(); // 会使计算属性的依赖项收集到vue实例的wachter
             };
 
             return watcher.value;
@@ -136,28 +136,29 @@ class Watcher {
         this.newDeps = []
         this.depIds = new Set()
         this.newDepIds = new Set()
-       
-        // parse expression for getter
+
+
         if (typeof expOrFn === 'function') {
-            this.getter = expOrFn
+            this.getter = expOrFn; // 计算属性的运行函数
         } else {
             this.getter = parsePath(expOrFn)
             if (!this.getter) {
                 this.getter = noop;
             }
         }
+
         this.value = this.lazy ? undefined : this.get()
     }
 
     /**
-     * Evaluate the getter, and re-collect dependencies.
+     * 评估getter，并重新收集依赖项。
      */
     get() {
-        pushTarget(this)
+        pushTarget(this); // 将计算属性的wathcer赋值到Dep静态属性上
         let value
         const vm = this.vm
         try {
-            value = this.getter.call(vm, vm)
+            value = this.getter.call(vm, vm); // 运行计算属性的get函数，并将该函数的this设置为vue实例
         } catch (e) {
             if (this.user) {
                 handleError(e, vm, `getter for watcher "${this.expression}"`)
@@ -165,19 +166,20 @@ class Watcher {
                 throw e
             }
         } finally {
-            // "touch" every property so they are all tracked as
-            // dependencies for deep watching
+            
+            // 判断是否需要进行深度监听依赖的属性
             if (this.deep) {
                 traverse(value)
             }
-            popTarget()
+            popTarget(); // 将vue实例的watcher赋值到Dep静态属性上
             this.cleanupDeps()
         }
-        return value
+        return value;
     }
 
     /**
-     * Add a dependency to this directive.
+     * 添加dep
+     * @param {*} dep  依赖项数据的dep
      */
     addDep(dep) {
         const id = dep.id
@@ -185,13 +187,13 @@ class Watcher {
             this.newDepIds.add(id)
             this.newDeps.push(dep)
             if (!this.depIds.has(id)) {
-                dep.addSub(this)
+                dep.addSub(this);  // this 当前watcher
             }
         }
     }
 
     /**
-     * Clean up for dependency collection.
+     * 清理依赖项集合
      */
     cleanupDeps() {
         let i = this.deps.length
@@ -212,11 +214,11 @@ class Watcher {
     }
 
     /**
-     * Subscriber interface.
-     * Will be called when a dependency changes.
+     * 更新
      */
     update() {
-        /* istanbul ignore else */
+        
+        // 判断是否是脏值
         if (this.lazy) {
             this.dirty = true
         } else if (this.sync) {
@@ -227,8 +229,7 @@ class Watcher {
     }
 
     /**
-     * Scheduler job interface.
-     * Will be called by the scheduler.
+     * 进入调度器
      */
     run() {
         if (this.active) {
@@ -256,24 +257,22 @@ class Watcher {
 
 
     evaluate() {
-        Dep.target = this;
-        this.value = this.get(); // 运行计算属性函数
+        this.value = this.get();
         this.dirty = false; // 修改脏值
-        Dep.target = null;
     }
 
     /**
-     * Depend on all deps collected by this watcher.
+     * 收集依赖
      */
     depend() {
         let i = this.deps.length
         while (i--) {
-            this.deps[i].depend()
+            this.deps[i].depend(); // 收集wachter
         }
     }
 
     /**
-     * Remove self from all dependencies' subscriber list.
+     * 从所有依赖项的订阅服务器列表中删除self。
      */
     teardown() {
         if (this.active) {
@@ -290,4 +289,15 @@ class Watcher {
             this.active = false
         }
     }
-}
+};
+
+
+function pushTarget(target) {
+    targetStack.push(target);
+    Dep.target = target
+};
+
+function popTarget() {
+    targetStack.pop(); // 截取掉最后一项
+    Dep.target = targetStack[targetStack.length - 1]; // 将vue实例的wachter还原到target中
+};
