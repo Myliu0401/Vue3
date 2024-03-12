@@ -123,7 +123,7 @@ function defineReactive(obj, key, val, customSetter, shallow) {
     const getter = property && property.get; // 获取读取的运行函数
     const setter = property && property.set; // 获取修改的运行函数
 
-    // 没有读取的运行函数或者有修改的运行函数 并且 只有两个实参
+    // 没有传入属性值的情况下
     if ((!getter || setter) && arguments.length === 2) {
         val = obj[key]; // 获取属性值
     };
@@ -196,8 +196,7 @@ class Dep {
 
     depend() {
         if (Dep.target) {
-            Dep.target.addDep(this); // 在watcher实例中添加dep实例
-           // this.addSub(Dep.target) // 在dep实例中添加watcher实例
+            Dep.target.addDep(this); // 会将当前的watcher添加到dep中
         }
     }
 

@@ -29,5 +29,5 @@ function del(target, key) {
 
 
     // 通知依赖更新
-    ob.dep.notify(); 
+    ob.dep.notify();
 };
