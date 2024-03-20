@@ -257,7 +257,6 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   set(target, key, value, receiver) {
     let oldValue = target[key]; // 获取旧的数据
 
-
     if (!this._shallow) {
       const isOldValueReadonly = isReadonly(oldValue); // 判断是否是只读的
       
