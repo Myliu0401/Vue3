@@ -8,7 +8,7 @@ export function ref(value) {
 // 创建RefImpl实例
 function createRef(rawValue, shallow) {
 
-  // 判断是否是ref对象
+  // 判断该数据是否已ref代理对象
   if (isRef(rawValue)) {
     return rawValue; // 直接返回rsf对象
   }
@@ -16,6 +16,13 @@ function createRef(rawValue, shallow) {
 };
 
 function toRaw(value) {
+
+   /* 
+       __v_raw  属性返回 reactive 和 readonly 的原始数据
+      
+   
+   */
+
   return value && value.__v_raw ? value.__v_raw : value;
 };
 
@@ -133,8 +140,14 @@ function trackRefValue(ref) {
   }
 }
 
+
+/**
+ * 
+ * @param {*} ref     响应式数据的实例
+ * @param {*} newVal  新数据
+ */
 function triggerRefValue(ref, newVal) {
-  ref = toRaw(ref);
+  ref = toRaw(ref);  // 获取原始数据
   const dep = ref.dep;
 
   triggerEffects(dep);
@@ -156,7 +169,7 @@ function trackEffects(dep, debuggerEventExtraInfo) {
   }
 
   if (shouldTrack) {
-    dep.add(activeEffect); // 装载 作用域
+    dep.add(activeEffect); // 装载 当前激活作用域
     activeEffect.deps.push(dep); // 将自己的set数组也添加到副作用的实例中
 
   }

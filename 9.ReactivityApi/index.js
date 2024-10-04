@@ -7,7 +7,7 @@
                 readonly函数，    对参数对象进行深度代理，返回代理对象，但是属性是只读的，不允许修改的。
                     参数为 平面对象或代理对象
 
-                ref函数    对参数进行响应，如果参数不是引用类型则会创建一个RefImpl实例，访问value时，返回被数据
+                ref函数    对参数进行响应式，如果参数不是引用类型则会创建一个RefImpl实例，访问value时，返回数据
                            如果是引用类型则会通过reateive函数进行代理，如果是ref，则直接使用，访问value时返回。
                     参数可以是任何类型
             
@@ -16,10 +16,13 @@
                       当读取value时，会根据情况决定需要运行回调函数
 
 
+                readonly 吐音  雷豆乃
+                Impl     吐音  等铺
+
         
 
           例子
-            impory { reactive, readomle } from 'vue'
+            impory { reactive, readonly } from 'vue'
              const obj = { a:123, b: 12 }
              const state = reatetive(obj)
              const imState = readonly(state);
@@ -69,6 +72,6 @@
              toRef函数   把代理数据转换成 ref对象 
                           如：代理{ a: 1, b: 2 }  toRef(代理对象, 'a') ===> ref对象{ value: 1 }
              toRefs函数  把代理数据转换成 ref对象 
-                         如：代理{ a: 1, b: 2 }  toRef(代理对象) ===> ref对象{ a: { value: 1 }, b: { value: 2 } }
+                         如：代理{ a: 1, b: 2 }  toRefs(代理对象) ===> ref对象{ a: { value: 1 }, b: { value: 2 } }
 
 */

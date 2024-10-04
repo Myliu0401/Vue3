@@ -31,6 +31,7 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
     setter = getterOrOptions.set; // 获取修改的函数
   }
 
+  // computed  吐音 堪biu T
 
   // 创建实例
   const cRef = new ComputedRefImpl(
@@ -207,6 +208,7 @@ function recordEffectScope(effect, scope = activeEffectScope) {
 };
 
 
+// ref为 computedRefImpl
 function trackRefValue(ref) {
   if (shouldTrack && activeEffect) {
       ref = toRaw(ref);  // 获取对象背后的原始数据的函数
@@ -265,9 +267,9 @@ function triggerEffect(effect, debuggerEventExtraInfo) {
   if (effect !== activeEffect || effect.allowRecurse) {
   
     if (effect.scheduler) {
-      effect.scheduler();
+      effect.scheduler(); // 计算属性修改脏值
     } else {
-      effect.run();
+      effect.run(); // 页面刷新
     }
   }
 };

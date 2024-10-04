@@ -165,6 +165,12 @@ export function resetTracking() {
   shouldTrack = last === undefined ? true : last;
 }
 
+/**
+ * 
+ * @param {*} target   原始对象
+ * @param {*} type     类型
+ * @param {*} key      属性名
+ */
 export function track(target, type, key) {
   if (shouldTrack && activeEffect) {
     let depsMap = targetMap.get(target);
@@ -184,6 +190,11 @@ export function track(target, type, key) {
   }
 }
 
+/**
+ * 
+ * @param {*} dep set数组
+ * @param {*} debuggerEventExtraInfo 
+ */
 export function trackEffects(dep, debuggerEventExtraInfo) {
   let shouldTrack = false;
   if (effectTrackDepth <= maxMarkerBits) {
@@ -203,7 +214,7 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
 }
 
 export function trigger(target, type, key, newValue, oldValue, oldTarget) {
-  const depsMap = targetMap.get(target);
+  const depsMap = targetMap.get(target); // 获取原始对象数据的 Map集合
   if (!depsMap) {
     return;
   }
@@ -223,6 +234,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
       deps.push(depsMap.get(key));
     }
 
+    // 将原始数据的Map集合下，对应的属性的Set集合中的dep添加进去
     switch (type) {
       case TriggerOpTypes.ADD:
         if (!isArray(target)) {
@@ -295,9 +307,9 @@ function triggerEffect(effect, debuggerEventExtraInfo) {
   if (effect !== activeEffect || effect.allowRecurse) {
   
     if (effect.scheduler) {
-      effect.scheduler();
+      effect.scheduler(); // 这一个一般是计算属性的将
     } else {
-      effect.run();
+      effect.run(); // 触发重渲染
     }
   }
 }

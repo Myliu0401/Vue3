@@ -144,7 +144,7 @@ function defineReactive(obj, key, val, customSetter, shallow) {
             // target为wacther的实例，每一个组件或页面创建时，都会执行创建一个wacther
             if (Dep.target) {
                 dep.depend(); // 收集wacther
-
+                //dep.addSub(Dep.target);
             }
             return value; // 返回属性值
         },
@@ -187,7 +187,7 @@ class Dep {
      * @param {*} sub 当前 Dep.target 的 wachter
      */
     addSub(sub) {
-        this.subs.push(sub)
+        this.subs.push(sub); // 将当前的wachter添加到dep实例中
     }
 
     removeSub(sub) {
@@ -196,7 +196,7 @@ class Dep {
 
     depend() {
         if (Dep.target) {
-            Dep.target.addDep(this); // 会将当前的watcher添加到dep中
+            Dep.target.addDep(this); // 会将当前的dep实例添加到wachter实例中
         }
     }
 
@@ -216,7 +216,7 @@ function Watcher(vm, expOrFn, cb) {
     this.vm = vm;
     this.getter = parsePath(expOrFn);
     this.cb = cb;
-    this.value = this.get();
+    this.value = this.get();  // 虚拟dom树
 };
 
 Watcher.prototype.get = function () {

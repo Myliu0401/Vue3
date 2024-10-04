@@ -7,6 +7,7 @@
           useStore函数     获取仓库实例
 
 
+          Store   吐音  是栋
 
 
 */

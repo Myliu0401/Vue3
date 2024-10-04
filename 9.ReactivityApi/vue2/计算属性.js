@@ -14,6 +14,8 @@ function initComputed(vm, computed) {
 
     const isSSR = isServerRendering(); // 判断浏览器是否没有window对象
 
+
+    // 循环计算属性配置项
     for (const key in computed) {
 
         const userDef = computed[key]; // 获取计算属性对象的值
@@ -61,7 +63,7 @@ function defineComputed(target, key, userDef) {
             ? shouldCache && userDef.cache !== false
                 ? createComputedGetter(key)
                 : createGetterInvoker(userDef.get)
-            : noop
+            : noop;
         sharedPropertyDefinition.set = userDef.set || noop
     }
 
@@ -143,7 +145,7 @@ class Watcher {
         } else {
             this.getter = parsePath(expOrFn)
             if (!this.getter) {
-                this.getter = noop;
+                this.getter = noop; // 空函数
             }
         }
 
@@ -156,7 +158,7 @@ class Watcher {
     get() {
         pushTarget(this); // 将计算属性的wathcer赋值到Dep静态属性上
         let value
-        const vm = this.vm
+        const vm = this.vm; // vue实例
         try {
             value = this.getter.call(vm, vm); // 运行计算属性的get函数，并将该函数的this设置为vue实例
         } catch (e) {
@@ -208,7 +210,7 @@ class Watcher {
         this.newDepIds = tmp
         this.newDepIds.clear()
         tmp = this.deps
-        this.deps = this.newDeps
+        this.deps = this.newDeps; // 将计算属性的wathcer中的该数据取出来
         this.newDeps = tmp
         this.newDeps.length = 0
     }
@@ -267,6 +269,7 @@ class Watcher {
     depend() {
         let i = this.deps.length
         while (i--) {
+            // 执行每个dep的收集函数
             this.deps[i].depend(); // 收集wachter
         }
     }

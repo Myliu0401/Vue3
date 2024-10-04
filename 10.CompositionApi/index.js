@@ -1,8 +1,8 @@
 /* 
      composition api相比于 option api 有哪些优势?
-       不同于 reactivity api, composition api提供的函数很多是与组件深度绑定的，不能脱离组件而存在。
+       不同于 reactivity api, composition api提供的函数很多是与组件深度绑定的。
 
-       可以在组件内部进行更加细粒度的控制，使得组件中不同的功能高度聚合，提升了代码的可维护新，对于不同组件的相同功能，也能更好的复用。
+       可以在组件内部进行更加细粒度的控制，使得组件中不同的功能高度聚合，提升了代码的可维护性，对于不同组件的相同功能，也能更好的复用。
        可以更好的与TS进行配合。
 
 
@@ -28,8 +28,8 @@
           Mounted                                                  onMounted
           beforUpdate                                              onBeforeUpdate
           updated                                                  onUpdated
-          beforeUnmount                                            onBeforeUnmount
-          unmounted                                                onUnmounted
+          beforeDestroy                                            onBeforeUnmount
+          destroyed                                                onUnmounted
           errorCaptured                                            onErrorCaptured
           renderTracked                                            onRenderTracked
           renderTriggered                                          onRenderTriggered
@@ -47,5 +47,8 @@
             Captured   吐音 轻吹
             Tracked    吐音 崔可
             Triggered  吐音 崔肯
-            option     吐音 啊顺
+            option     吐音 哦顺
+            reactivity 吐音 react 特v丢
+
+            setup      吐音 谁导
  */

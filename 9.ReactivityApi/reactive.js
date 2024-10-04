@@ -24,6 +24,8 @@ export const reactiveMap = new WeakMap();
 export const shallowReactiveMap = new WeakMap();
 export const readonlyMap = new WeakMap();
 export const shallowReadonlyMap = new WeakMap();
+export const targetMap = new WeakMap();
+
 
 const TargetType = {
   INVALID: 0,
@@ -31,12 +33,12 @@ const TargetType = {
   COLLECTION: 2
 };
 
-
-function isReadonly(value){
-    return value.__v_readonly;
+// 判断该数据是否是通过readonly创建的
+function isReadonly(value) {
+  return value.__v_readonly;
 };
 
-
+// 创建响应式数据
 export function reactive(target) {
 
   // 检查新值 数据 是否是只读的响应式对象
@@ -55,6 +57,7 @@ export function reactive(target) {
 }
 
 
+// 创建只读的代理对象
 export function readonly(target) {
   return createReactiveObject(
     target,
@@ -90,7 +93,7 @@ function createReactiveObject(
     return target;
   }
 
-  // 判断目标对象是否已经是响应式对象，并且不是只读的
+  // 判断目标对象是否已经是响应式对象，并且是reactive或readonly数据
   if (target[ReactiveFlags.RAW] && !(isReadonly && target[ReactiveFlags.IS_REACTIVE])) {
     return target;
   }
@@ -98,7 +101,7 @@ function createReactiveObject(
 
   const existingProxy = proxyMap.get(target); // 是否已有该数据
   if (existingProxy) {
-    return existingProxy;
+    return existingProxy;  // 直接返回
   };
 
   // 判断是否是原始类型 
@@ -185,7 +188,7 @@ class BaseReactiveHandler {
       return shallow;
     } else if (key === ReactiveFlags.RAW) {
       // 判断代理对象是否等于创建数据时存起来的代理对象 或者 原始数据中的原型是否等于代理对象的原型
-      if (receiver === (isReadonly ? shallow ? shallowReadonlyMap : readonlyMap : shallow ? shallowReactiveMap : reactiveMap ).get(target) ||
+      if (receiver === (isReadonly ? shallow ? shallowReadonlyMap : readonlyMap : shallow ? shallowReactiveMap : reactiveMap).get(target) ||
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
         return target;
@@ -202,7 +205,7 @@ class BaseReactiveHandler {
     if (!isReadonly) {
 
       // 并且arrayInstrumentations实例中拥有该属性  就是判断是不是访问数组的原型方法
-      if (targetIsArray && hasOwn(arrayInstrumentations, key)) { 
+      if (targetIsArray && hasOwn(arrayInstrumentations, key)) {
         return Reflect.get(arrayInstrumentations, key, receiver); // 获取该属性
       }
       if (key === 'hasOwnProperty') {
@@ -232,7 +235,7 @@ class BaseReactiveHandler {
 
     // 判断是否是引用类型的
     if (isObject(res)) {
-      return isReadonly ? readonly(res) : reactive(res);
+      return isReadonly ? readonly(res) : reactive(res);  // 继续代理
     }
 
     return res;
@@ -259,7 +262,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
     if (!this._shallow) {
       const isOldValueReadonly = isReadonly(oldValue); // 判断是否是只读的
-      
+
       // 判断数据是否不是浅层的响应式对象并且不是只读的
       if (!isShallow(value) && !isReadonly(value)) {
         oldValue = toRaw(oldValue);  // 获取原始数
@@ -269,11 +272,11 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
       // 不是数组并且旧数据是ref数据并且新数据不是ref数据
       if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
-        
+
         if (isOldValueReadonly) { // 是否为只读
           return false;
         } else {
-          oldValue.value = value;
+          oldValue.value = value;  // 修改ref的value也会触发重渲染
           return true;
         };
       }
@@ -289,9 +292,9 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     // 判断原始数据是否跟对象是同一个
     if (target === toRaw(receiver)) {
       if (!hadKey) {
-        trigger(target, TriggerOpTypes.ADD, key, value); // 触发后续微队列中的页面从渲染
+        trigger(target, TriggerOpTypes.ADD, key, value); // 触发后续微队列中的页面重渲染
       } else if (hasChanged(value, oldValue)) {
-        trigger(target, TriggerOpTypes.SET, key, value, oldValue);  // 触发后续微队列中的页面从渲染
+        trigger(target, TriggerOpTypes.SET, key, value, oldValue);  // 触发后续微队列中的页面重渲染
       }
     };
 
@@ -314,7 +317,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     return result;
   }
 
-  
+
   //判断一个对象是否拥有一个属性
   has(target, key) {
     const result = Reflect.has(target, key);
@@ -334,6 +337,17 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   }
 };
 
+function toRaw(observed) {
+
+  // 该代理对象是否是 Reactive 或 Readonly 代理的
+  if (isReactive(observed) || isReadonly(observed)) {
+    return observed.__v_raw;  // 返回原始数据
+  }
+  return observed; // 返回代理对象
+};
+
+
+
 
 // readonly代理对象的配置实例
 class ReadonlyReactiveHandler extends BaseReactiveHandler {
@@ -343,13 +357,13 @@ class ReadonlyReactiveHandler extends BaseReactiveHandler {
 
   // 修改/添加 直接返回true
   set(target, key) {
-   
+
     return true;
   }
 
   // 删除  直接返回true
   deleteProperty(target, key) {
-   
+
     return true;
   }
 };

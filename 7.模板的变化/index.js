@@ -22,7 +22,8 @@
         vue3中移除了 model配置项，该配置项在vue2中是配置v-model的属性名和事件名的
 
 
-        vue3中允许自定义 v-model 修饰符
+        vue3中允许自定义 v-
+         修饰符
             如 v-model.cap="xxx" 、 v-model:title.cap="xxx" 、 v-model:title.cap.cao.xx="xx"
 
             如果有修饰符则会传入几个props

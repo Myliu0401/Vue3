@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop with Moving Reference Lines on Component</title>
+    <style>
+        .reference-line {
+            position: absolute;
+            background-color: #f00; /* 参考线颜色 */
+            pointer-events: none; /* 参考线不响应鼠标事件 */
+            z-index: 9999; /* 确保参考线位于其他元素之上 */
+        }
+    </style>
+</head>
+<body>
+    <div id="draggable" style="width: 100px; height: 100px; background-color: #00f; position: absolute; top: 50px; left: 50px;">
+        Drag Me
+    </div>
+
+    <script>
+        const draggable = document.getElementById('draggable');
+        const container = document.body;
+
+        let referenceLines = [];
+
+        function createReferenceLine(horizontal, position) {
+            const referenceLine = document.createElement('div');
+            referenceLine.classList.add('reference-line');
+            referenceLine.style.width = horizontal ? '100%' : '1px';
+            referenceLine.style.height = horizontal ? '1px' : '100%';
+            referenceLine.style.left = horizontal ? '0' : position + 'px';
+            referenceLine.style.top = horizontal ? position + 'px' : '0';
+            draggable.appendChild(referenceLine); // 改变父级为拖拽元素
+            referenceLines.push(referenceLine);
+        }
+
+        function updateReferenceLines(x, y) {
+            referenceLines.forEach(line => line.remove());
+            referenceLines = [];
+
+            // 检查水平对齐
+            const horizontalAlign = [50, 100, 150]; // 假设其他元素的水平位置
+            horizontalAlign.forEach(position => {
+                createReferenceLine(true, position - y);
+            });
+
+            // 检查垂直对齐
+            const verticalAlign = [50, 100, 150]; // 假设其他元素的垂直位置
+            verticalAlign.forEach(position => {
+                createReferenceLine(false, position - x);
+            });
+        }
+
+        draggable.addEventListener('mousedown', function(e) {
+            let offsetX = e.clientX - draggable.getBoundingClientRect().left;
+            let offsetY = e.clientY - draggable.getBoundingClientRect().top;
+
+            function onMouseMove(e) {
+                draggable.style.left = e.clientX - offsetX + 'px';
+                draggable.style.top = e.clientY - offsetY + 'px';
+                updateReferenceLines(e.clientX, e.clientY);
+            }
+
+            function onMouseUp() {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                updateReferenceLines(0, 0);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    </script>
+</body>
+</html>
