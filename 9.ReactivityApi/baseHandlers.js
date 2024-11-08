@@ -22,6 +22,15 @@ import {
 import { isRef } from './ref';
 import { warn } from './warning';
 
+
+const ReactiveFlags = {
+  SKIP: '__v_skip',           // 标识对象是否跳过响应式处理
+  IS_REACTIVE: '__v_isReactive', // 标识对象是否为响应式对象
+  IS_READONLY: '__v_isReadonly', // 标识对象是否为只读对象
+  RAW: '__v_raw'              // 存储代理对象的原始数据
+};
+
+
 const isNonTrackableKeys = /*#__PURE__*/ makeMap(`__proto__,__v_isRef,__isVue`);
 
 const builtInSymbols = new Set(
@@ -36,30 +45,35 @@ const arrayInstrumentations = /*#__PURE__*/ createArrayInstrumentations();
 
 function createArrayInstrumentations() {
   const instrumentations = {};
+
+  // 处理依赖追踪的方法
   (['includes', 'indexOf', 'lastIndexOf'] as const).forEach(key => {
     instrumentations[key] = function (...args) {
-      const arr = toRaw(this);
+      const arr = toRaw(this);  // 获取原始数组
       for (let i = 0, l = this.length; i < l; i++) {
-        track(arr, TrackOpTypes.GET, i + '');
+        track(arr, TrackOpTypes.GET, i + ''); // 跟踪每个索引
       }
-      const res = arr[key](...args);
+      const res = arr[key](...args); // 执行原始方法
       if (res === -1 || res === false) {
-        return arr[key](...args.map(toRaw));
+        return arr[key](...args.map(toRaw)); // 将参数转为原始值后再查找
       } else {
         return res;
       }
     }
   });
+
+  // 处理数组修改的方法
   (['push', 'pop', 'shift', 'unshift', 'splice'] as const).forEach(key => {
     instrumentations[key] = function (...args) {
-      pauseTracking();
-      pauseScheduling();
-      const res = (toRaw(this))[key].apply(this, args);
-      resetScheduling();
-      resetTracking();
+      pauseTracking(); // 暂停依赖追踪
+      pauseScheduling(); // 暂停调度
+      const res = (toRaw(this))[key].apply(this, args); // 执行数组操作
+      resetScheduling(); // 恢复调度
+      resetTracking(); // 恢复依赖追踪
       return res;
     }
   });
+
   return instrumentations;
 }
 
@@ -93,9 +107,12 @@ class BaseReactiveHandler {
       return isReadonly;
     } else if (key === ReactiveFlags.IS_SHALLOW) {  // 是否是浅层响应式
       return shallow;
-    } else if (key === ReactiveFlags.RAW) {
+    } else if (key === ReactiveFlags.RAW) { 
+
       // 判断代理对象是否等于原始对象。如果是，则返回原始对象，否 则返回undefined
-      if (receiver === (isReadonly ? shallow ? shallowReadonlyMap : readonlyMap : shallow ? shallowReactiveMap : reactiveMap ).get(target) ||
+      if (receiver === (
+         isReadonly ? shallow ? shallowReadonlyMap : readonlyMap :
+         shallow ? shallowReactiveMap : reactiveMap ).get(target) ||
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
         return target;
@@ -107,9 +124,12 @@ class BaseReactiveHandler {
 
     // 判断是否不是只读的
     if (!isReadonly) {
+
+      // 是否是访问特定的几个数组的api, 这个特定的api是重写的，不是原生的api
       if (targetIsArray && hasOwn(arrayInstrumentations, key)) { // 并且arrayInstrumentations实例中拥有该属性
         return Reflect.get(arrayInstrumentations, key, receiver); // 获取该属性
       }
+
       if (key === 'hasOwnProperty') {
         return hasOwnProperty;
       }
@@ -117,6 +137,11 @@ class BaseReactiveHandler {
 
     const res = Reflect.get(target, key, receiver); // 获取该属性
 
+    /* 
+        isSymbol 用于判断 key 是否为symbol类型
+        builtInSymbols.has(key)  用于判断是否是内置符号
+        isNonTrackableKeys  用于判断某个键是否是不可追踪的
+    */
     if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
       return res;
     }
@@ -132,11 +157,15 @@ class BaseReactiveHandler {
 
     // 判断是否是ref对象
     if (isRef(res)) {
+
+      // 判断是否是数组
       return targetIsArray && isIntegerKey(key) ? res : res.value;
     }
 
     // 判断是否是引用类型的
     if (isObject(res)) {
+
+      // 判断是否是只读的
       return isReadonly ? readonly(res) : reactive(res);
     }
 
@@ -162,7 +191,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
 
     if (!this._shallow) {
-      const isOldValueReadonly = isReadonly(oldValue); // 判断是否是只读的
+      const isOldValueReadonly = isReadonly(oldValue); // 判断就数据是否是只读的
       
       // 判断数据是否不是浅层的响应式对象并且不是只读的
       if (!isShallow(value) && !isReadonly(value)) {
@@ -171,7 +200,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
       };
 
 
-      // 不是数组并且旧数据是ref数据并且新数据不是ref数据
+      // 原始数据不是数组并且旧数据是ref数据并且新数据不是ref数据
       if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
         
         if (isOldValueReadonly) { // 是否为只读
@@ -188,9 +217,11 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
 
     const result = Reflect.set(target, key, value, receiver); // 修改/设置 属性
-
-    // 判断原始数据是否跟对象是同一个
+ 
+    // 判断原始数据是否是被代理   
     if (target === toRaw(receiver)) {
+
+      // 判断是否是数组
       if (!hadKey) {
         trigger(target, TriggerOpTypes.ADD, key, value); // 触发后续微队列中的页面从渲染
       } else if (hasChanged(value, oldValue)) {
@@ -253,6 +284,48 @@ class ReadonlyReactiveHandler extends BaseReactiveHandler {
    
     return true;
   }
+}
+
+// 通常用于确保对原始数据的直接访问而不触发 Vue 的响应式机制
+function toRaw(value) {
+
+  /* 
+      __v_raw  属性返回 reactive 和 readonly 的原始数据
+     
+  
+  */
+
+ return value && value.__v_raw ? value.__v_raw : value;
+};
+
+/**
+ * 检测字符串是否为整数键
+ * @param {*} key 
+ * @returns 
+ */
+function isIntegerKey(key) {
+  return typeof key === 'string' && key !== 'NaN' && key[0] !== '-' && '' + parseInt(key, 10) === key;
+}
+
+/**
+ * 判断数据是否是只读
+ * @param {*} value 数据
+ * @returns 
+ */
+function isReadonly(value) {
+  return !!(value && value["__v_isReadonly"]);
+}
+
+
+/**
+ * 用于判断对象是否拥有某个自身属性，既属性不是对象原型上的
+ * @param {*} value 
+ * @param {*} key 
+ * @returns 
+ */
+function hasOwn(value, key) {
+  const hasOwnProperty = Object.prototype.hasOwnProperty;
+  return hasOwnProperty.call(value, key);
 }
 
 export const mutableHandlers =

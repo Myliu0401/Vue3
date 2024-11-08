@@ -166,19 +166,28 @@ export function resetTracking() {
 }
 
 /**
- * 
- * @param {*} target   原始对象
- * @param {*} type     类型
- * @param {*} key      属性名
+ * 收集依赖
+ * @param {*} target   原始对象  被追踪的目标对象
+ * @param {*} type     类型      操作类型，通常指示是读取、写入等类型的操作
+ * @param {*} key      属性名    在 target 对象中被访问的属性键
  */
 export function track(target, type, key) {
+
+  // 判断是否有副作用实例
   if (shouldTrack && activeEffect) {
-    let depsMap = targetMap.get(target);
+    let depsMap = targetMap.get(target); 
+
     if (!depsMap) {
+
+     
       targetMap.set(target, (depsMap = new Map()));
     }
-    let dep = depsMap.get(key);
+
+    let dep = depsMap.get(key); 
+
     if (!dep) {
+      
+      // 创建 set数组
       depsMap.set(key, (dep = createDep()));
     }
 
@@ -191,21 +200,27 @@ export function track(target, type, key) {
 }
 
 /**
- * 
+ * 用于追踪副作用
  * @param {*} dep set数组
  * @param {*} debuggerEventExtraInfo 
  */
 export function trackEffects(dep, debuggerEventExtraInfo) {
   let shouldTrack = false;
+
+  // 这个判断的目的是为了控制副作用追踪的深度，以避免在嵌套副作用的情况下导致性能问题或栈溢出。
   if (effectTrackDepth <= maxMarkerBits) {
     if (!newTracked(dep)) {
       dep.n |= trackOpBit;
+
+      // 判断当前的副作用（activeEffect）是否已经存在于这个集合中
       shouldTrack = !wasTracked(dep);
     }
   } else {
     shouldTrack = !dep.has(activeEffect);  // 判断是否已有该作用域
   }
 
+
+  // 如果没有追踪则进行追踪
   if (shouldTrack) {
     dep.add(activeEffect); // 装载 作用域
     activeEffect.deps.push(dep);
@@ -213,6 +228,17 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
   }
 }
 
+
+/**
+ * 驱动更新
+ * @param {*} target 
+ * @param {*} type 
+ * @param {*} key 
+ * @param {*} newValue 
+ * @param {*} oldValue 
+ * @param {*} oldTarget 
+ * @returns 
+ */
 export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   const depsMap = targetMap.get(target); // 获取原始对象数据的 Map集合
   if (!depsMap) {

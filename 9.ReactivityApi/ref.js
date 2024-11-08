@@ -15,6 +15,7 @@ function createRef(rawValue, shallow) {
   return new RefImpl(rawValue, shallow);
 };
 
+// 通常用于确保对原始数据的直接访问而不触发 Vue 的响应式机制
 function toRaw(value) {
 
    /* 
