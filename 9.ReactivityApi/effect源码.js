@@ -1,15 +1,15 @@
-import { TrackOpTypes, TriggerOpTypes } from './operations';
-import { extend, isArray, isIntegerKey, isMap, isSymbol } from '@vue/shared';
-import { EffectScope, recordEffectScope } from './effectScope';
+import { TrackOpTypes, TriggerOpTypes } from "./operations";
+import { extend, isArray, isIntegerKey, isMap, isSymbol } from "@vue/shared";
+import { EffectScope, recordEffectScope } from "./effectScope";
 import {
   createDep,
   Dep,
   finalizeDepMarkers,
   initDepMarkers,
   newTracked,
-  wasTracked
-} from './dep';
-import { ComputedRefImpl } from './computed';
+  wasTracked,
+} from "./dep";
+import { ComputedRefImpl } from "./computed";
 
 const targetMap = new WeakMap();
 
@@ -22,23 +22,22 @@ const maxMarkerBits = 30;
 export type EffectScheduler = (...args: any[]) => any;
 
 export type DebuggerEvent = {
-  effect: ReactiveEffect;
+  effect: ReactiveEffect,
 } & DebuggerEventExtraInfo;
 
 export type DebuggerEventExtraInfo = {
-  target: object;
-  type: TrackOpTypes | TriggerOpTypes;
-  key: any;
-  newValue?: any;
-  oldValue?: any;
-  oldTarget?: Map<any, any> | Set<any>;
+  target: object,
+  type: TrackOpTypes | TriggerOpTypes,
+  key: any,
+  newValue?: any,
+  oldValue?: any,
+  oldTarget?: Map<any, any> | Set<any>,
 };
 
 export let activeEffect;
 
-export const ITERATE_KEY = Symbol(__DEV__ ? 'iterate' : '');
-export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? 'Map key iterate' : '');
-
+export const ITERATE_KEY = Symbol(__DEV__ ? "iterate" : "");
+export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? "Map key iterate" : "");
 
 // 追踪和管理响应式副作用的核心机制。它是Vue 3响应式系统的基础之一
 export class ReactiveEffect {
@@ -54,8 +53,8 @@ export class ReactiveEffect {
   onTrigger;
 
   constructor(fn, scheduler = null, scope) {
-    recordEffectScope(this, scope);  // 记录当前的副作用函数所属的作用域
-    this.fn = fn; 
+    recordEffectScope(this, scope); // 记录当前的副作用函数所属的作用域
+    this.fn = fn;
     this.scheduler = scheduler;
   }
 
@@ -65,14 +64,14 @@ export class ReactiveEffect {
     }
     let parent = this.parent;
     let lastShouldTrack = shouldTrack;
-    
+
     while (parent) {
       if (parent === this) {
         return;
       }
       parent = parent.parent;
     }
-    
+
     try {
       this.parent = activeEffect;
       activeEffect = this;
@@ -175,18 +174,15 @@ export function track(target, type, key) {
 
   // 判断是否有副作用实例
   if (shouldTrack && activeEffect) {
-    let depsMap = targetMap.get(target); 
+    let depsMap = targetMap.get(target);  // 获取存储的数据
 
     if (!depsMap) {
-
-     
       targetMap.set(target, (depsMap = new Map()));
     }
 
     let dep = depsMap.get(key); 
 
     if (!dep) {
-      
       // 创建 set数组
       depsMap.set(key, (dep = createDep()));
     }
@@ -195,14 +191,14 @@ export function track(target, type, key) {
       ? { effect: activeEffect, target, type, key }
       : undefined;
 
-    trackEffects(dep, eventInfo);
+    trackEffects(dep, eventInfo); // 追踪副作用
   }
 }
 
 /**
  * 用于追踪副作用
  * @param {*} dep set数组
- * @param {*} debuggerEventExtraInfo 
+ * @param {*} debuggerEventExtraInfo
  */
 export function trackEffects(dep, debuggerEventExtraInfo) {
   let shouldTrack = false;
@@ -216,28 +212,25 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
       shouldTrack = !wasTracked(dep);
     }
   } else {
-    shouldTrack = !dep.has(activeEffect);  // 判断是否已有该作用域
+    shouldTrack = !dep.has(activeEffect); // 判断是否已有该作用域
   }
-
 
   // 如果没有追踪则进行追踪
   if (shouldTrack) {
     dep.add(activeEffect); // 装载 作用域
     activeEffect.deps.push(dep);
-    
   }
 }
 
-
 /**
  * 驱动更新
- * @param {*} target 
- * @param {*} type 
- * @param {*} key 
- * @param {*} newValue 
- * @param {*} oldValue 
- * @param {*} oldTarget 
- * @returns 
+ * @param {*} target
+ * @param {*} type
+ * @param {*} key
+ * @param {*} newValue
+ * @param {*} oldValue
+ * @param {*} oldTarget
+ * @returns
  */
 export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   const depsMap = targetMap.get(target); // 获取原始对象数据的 Map集合
@@ -248,10 +241,10 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   let deps = [];
   if (type === TriggerOpTypes.CLEAR) {
     deps = [...depsMap.values()];
-  } else if (key === 'length' && isArray(target)) {
+  } else if (key === "length" && isArray(target)) {
     const newLength = Number(newValue);
     depsMap.forEach((dep, key) => {
-      if (key === 'length' || (!isSymbol(key) && key >= newLength)) {
+      if (key === "length" || (!isSymbol(key) && key >= newLength)) {
         deps.push(dep);
       }
     });
@@ -269,7 +262,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
             deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
           }
         } else if (isIntegerKey(key)) {
-          deps.push(depsMap.get('length'));
+          deps.push(depsMap.get("length"));
         }
         break;
       case TriggerOpTypes.DELETE:
@@ -329,9 +322,9 @@ export function triggerEffects(dep, debuggerEventExtraInfo) {
   }
 }
 
+
 function triggerEffect(effect, debuggerEventExtraInfo) {
   if (effect !== activeEffect || effect.allowRecurse) {
-  
     if (effect.scheduler) {
       effect.scheduler(); // 这一个一般是计算属性的将
     } else {

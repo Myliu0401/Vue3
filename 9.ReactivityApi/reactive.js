@@ -86,7 +86,11 @@ function createReactiveObject(
     return target;
   }
 
-  // 判断目标对象是否已经是响应式对象，并且不是只读数据或不是可修改响应数据
+  /**
+   * target[ReactiveFlags.RAW]  是否是代理对象
+   * isReadonly  是否是只读
+   * target[ReactiveFlags.IS_REACTIVE]  是否是响应式对象
+   */
   if (
     target[ReactiveFlags.RAW] &&
     !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
@@ -105,7 +109,12 @@ function createReactiveObject(
     return target;
   }
 
-  // 进行代理
+
+  /**
+   * 进行代理
+   * COLLECTION 一般表示“集合”或“群组”的概念
+   * 一般第二个参数都为 baseHandlers 
+   */
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers

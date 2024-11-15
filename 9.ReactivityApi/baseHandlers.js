@@ -41,6 +41,8 @@ const builtInSymbols = new Set(
     .filter(isSymbol)
 );
 
+
+// 对数组原型上的方法进行劫持，重新封装
 const arrayInstrumentations = /*#__PURE__*/ createArrayInstrumentations();
 
 function createArrayInstrumentations() {
@@ -97,8 +99,9 @@ class BaseReactiveHandler {
    * @returns 
    */
   get(target, key, receiver) {
-    const isReadonly = this._isReadonly,
-      shallow = this._shallow;
+
+    const isReadonly = this._isReadonly, // 是否只读
+      shallow = this._shallow; // 
 
     // 判断 是否是 访问特定属性
     if (key === ReactiveFlags.IS_REACTIVE) { // 是否不是只读的
@@ -117,6 +120,7 @@ class BaseReactiveHandler {
       ) {
         return target;
       }
+
       return;
     }
 
@@ -130,12 +134,16 @@ class BaseReactiveHandler {
         return Reflect.get(arrayInstrumentations, key, receiver); // 获取该属性
       }
 
+      // 判断是否是访问hasOwnProperty方法
       if (key === 'hasOwnProperty') {
-        return hasOwnProperty;
+
+        // 返回的不是数组原型上的方法，而是重写的
+        return hasOwnProperty; 
       }
     }
 
-    const res = Reflect.get(target, key, receiver); // 获取该属性
+    // 进行反射，获取属性
+    const res = Reflect.get(target, key, receiver);
 
     /* 
         isSymbol 用于判断 key 是否为symbol类型
@@ -210,22 +218,29 @@ class MutableReactiveHandler extends BaseReactiveHandler {
           return true;
         }
       }
-    } else { }
+    } else {
+      console.log('==============')
+    };
 
     // 判断是否是数组并且索引是整数的   hasOwn判断原始数据中是否有指定的键
-    const hadKey = isArray(target) && isIntegerKey(key) ? Number(key) < target.length : hasOwn(target, key);
+    const hadKey = (isArray(target) && isIntegerKey(key)) ? Number(key) < target.length : hasOwn(target, key);
 
 
     const result = Reflect.set(target, key, value, receiver); // 修改/设置 属性
  
-    // 判断原始数据是否是被代理   
+    // 判断原始数据是否是被代理
     if (target === toRaw(receiver)) {
 
       // 判断是否是数组
       if (!hadKey) {
         trigger(target, TriggerOpTypes.ADD, key, value); // 触发后续微队列中的页面从渲染
-      } else if (hasChanged(value, oldValue)) {
+
+
+      } else if (hasChanged(value, oldValue)) { // 判断新旧属性是否不相同
+
+
         trigger(target, TriggerOpTypes.SET, key, value, oldValue);  // 触发后续微队列中的页面从渲染
+
       }
     };
 

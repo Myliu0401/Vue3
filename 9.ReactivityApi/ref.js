@@ -2,17 +2,17 @@
 
 // 创建一个ref数据
 export function ref(value) {
-  return createRef(value, false);
+  return createRef(value, false); // 创建refimpl实例
 };
 
 // 创建RefImpl实例
 function createRef(rawValue, shallow) {
 
-  // 判断该数据是否已ref代理对象
+  // 判断该数据是否是ref代理对象
   if (isRef(rawValue)) {
     return rawValue; // 直接返回rsf对象
   }
-  return new RefImpl(rawValue, shallow);
+  return new RefImpl(rawValue, shallow); // 创建RefImpl实例
 };
 
 // 通常用于确保对原始数据的直接访问而不触发 Vue 的响应式机制
@@ -20,17 +20,19 @@ function toRaw(value) {
 
    /* 
        __v_raw  属性返回 reactive 和 readonly 的原始数据
-      
-   
    */
 
   return value && value.__v_raw ? value.__v_raw : value;
+
 };
 
+// 继续代理
 function toReactive(value) {
-  return reactive(value)
+  return reactive(value);
 };
 
+
+// 进行代理
 function reactive(target) {
 
   // 检查新值 数据 是否是只读的响应式对象
@@ -49,6 +51,15 @@ function reactive(target) {
 };
 
 
+/**
+ * 创建实例对象
+ * @param {*} target              原始对象 
+ * @param {*} isReadonly          是否只读
+ * @param {*} baseHandlers       
+ * @param {*} collectionHandlers 
+ * @param {*} proxyMap 
+ * @returns 
+ */
 function createReactiveObject(
   target,
   isReadonly,
@@ -60,13 +71,12 @@ function createReactiveObject(
   // 判断是否不是引用类型
   if (!isObject(target)) {
     return target;
-  }
+  };
 
   // 判断目标对象是否存在原始对象，并且不是只读且已经被转换为响应式对象。
   if (target[ReactiveFlags.RAW] && !(isReadonly && target[ReactiveFlags.IS_REACTIVE])) {
     return target;
   }
-
 
   const existingProxy = proxyMap.get(target); // 是否已有该数据
   if (existingProxy) {
@@ -93,6 +103,12 @@ function createReactiveObject(
   return proxy;  // 返回代理对象
 };
 
+/**
+ * 判断新旧属性是否不相同
+ * @param {*} newValue 新数据
+ * @param {*} oldValue 旧数据
+ * @returns 
+ */
 function hasChanged(newValue, oldValue){
    return !Object.is(newValue, oldValue);
 };
@@ -104,7 +120,7 @@ class RefImpl {
   constructor(value, isShallow) {
     this._rawValue = isShallow ? value : toRaw(value);  // toRaw 获取原始数据
     this._value = isShallow ? value : toReactive(value); // toReactive 判断是否是否引用类型，如果是则调用reactive函数
-  }
+  };
 
   get value() {
     trackRefValue(this);  // 收集 组件或页面上下文实例
@@ -126,7 +142,7 @@ class RefImpl {
     // 判断新旧数据是否不一致
     if (hasChanged(newVal, this._rawValue)) {
       this._rawValue = newVal; // 存储新数据组
-      this._value = useDirectValue ? newVal : toReactive(newVal); // 
+      this._value = useDirectValue ? newVal : toReactive(newVal); // 继续代理
 
       triggerRefValue(this, newVal); // 进行驱动更新
     }
@@ -178,9 +194,15 @@ function trackEffects(dep, debuggerEventExtraInfo) {
 
 
 
-// 进行驱动更新
+/**
+ * 进行驱动更新
+ * @param {*} dep 
+ * @param {*} debuggerEventExtraInfo 
+ */
 function triggerEffects(dep, debuggerEventExtraInfo) {
-  const effects = isArray(dep) ? dep : [...dep];
+  const effects = isArray(dep) ? dep : [...dep];  // 是否数组
+
+  // 进行循环
   for (const effect of effects) {
     if (effect.computed) {
       triggerEffect(effect, debuggerEventExtraInfo);
@@ -194,6 +216,11 @@ function triggerEffects(dep, debuggerEventExtraInfo) {
 };
 
 
+/**
+ * 进行更新
+ * @param {*} effect 
+ * @param {*} debuggerEventExtraInfo 
+ */
 function triggerEffect(effect, debuggerEventExtraInfo) {
   if (effect !== activeEffect || effect.allowRecurse) {
 
