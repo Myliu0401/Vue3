@@ -85,6 +85,10 @@ function hasOwnProperty(key) {
   return obj.hasOwnProperty(key);
 }
 
+
+/**
+ * 
+ */
 class BaseReactiveHandler {
   constructor(_isReadonly = false, _shallow = false) {
     this._isReadonly = _isReadonly;
@@ -101,7 +105,7 @@ class BaseReactiveHandler {
   get(target, key, receiver) {
 
     const isReadonly = this._isReadonly, // 是否只读
-      shallow = this._shallow; // 
+      shallow = this._shallow; // 是否为浅层
 
     // 判断 是否是 访问特定属性
     if (key === ReactiveFlags.IS_REACTIVE) { // 是否不是只读的
@@ -110,7 +114,7 @@ class BaseReactiveHandler {
       return isReadonly;
     } else if (key === ReactiveFlags.IS_SHALLOW) {  // 是否是浅层响应式
       return shallow;
-    } else if (key === ReactiveFlags.RAW) { 
+    } else if (key === ReactiveFlags.RAW) {
 
       // 判断代理对象是否等于原始对象。如果是，则返回原始对象，否 则返回undefined
       if (receiver === (
@@ -138,7 +142,7 @@ class BaseReactiveHandler {
       if (key === 'hasOwnProperty') {
 
         // 返回的不是数组原型上的方法，而是重写的
-        return hasOwnProperty; 
+        return hasOwnProperty;
       }
     }
 
@@ -156,9 +160,12 @@ class BaseReactiveHandler {
 
     // 是否不是只读的
     if (!isReadonly) {
-      track(target, TrackOpTypes.GET, key);  // 收集依赖
+
+      track(target, TrackOpTypes.GET, key);  // 收集依赖,TrackOpTypes.GET类型表示获取
+
     }
 
+    // 判断是否为浅层
     if (shallow) {
       return res;
     }
@@ -173,7 +180,7 @@ class BaseReactiveHandler {
     // 判断是否是引用类型的
     if (isObject(res)) {
 
-      // 判断是否是只读的
+      // 进行递归
       return isReadonly ? readonly(res) : reactive(res);
     }
 
@@ -181,7 +188,13 @@ class BaseReactiveHandler {
   }
 }
 
+
+/**
+ * 进行继承BaseReactiveHandler
+ * shallow  是否为浅层对象
+ */
 class MutableReactiveHandler extends BaseReactiveHandler {
+
   constructor(shallow = false) {
     super(false, shallow);
   }
@@ -197,10 +210,10 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   set(target, key, value, receiver) {
     let oldValue = target[key]; // 获取旧的数据
 
-
+    // 判断是否不是浅层代理
     if (!this._shallow) {
       const isOldValueReadonly = isReadonly(oldValue); // 判断就数据是否是只读的
-      
+
       // 判断数据是否不是浅层的响应式对象并且不是只读的
       if (!isShallow(value) && !isReadonly(value)) {
         oldValue = toRaw(oldValue);  // 获取原始数
@@ -210,6 +223,16 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
       // 原始数据不是数组并且旧数据是ref数据并且新数据不是ref数据
       if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
+
+        /* 
+            进到这里将不会触发重渲染
+            如 
+              const state = reactive({
+                count: ref(10), // count 是一个 ref
+              });
+              state.count = 20; // 修改 count 的值为普通值
+        
+        */
         
         if (isOldValueReadonly) { // 是否为只读
           return false;
@@ -217,9 +240,11 @@ class MutableReactiveHandler extends BaseReactiveHandler {
           oldValue.value = value;
           return true;
         }
-      }
+      };
+
     } else {
-      console.log('==============')
+
+      
     };
 
     // 判断是否是数组并且索引是整数的   hasOwn判断原始数据中是否有指定的键
@@ -231,13 +256,15 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     // 判断原始数据是否是被代理
     if (target === toRaw(receiver)) {
 
-      // 判断是否是数组
+      
       if (!hadKey) {
+        // 进这里为添加
+        
         trigger(target, TriggerOpTypes.ADD, key, value); // 触发后续微队列中的页面从渲染
 
 
       } else if (hasChanged(value, oldValue)) { // 判断新旧属性是否不相同
-
+        // 进这里为修改
 
         trigger(target, TriggerOpTypes.SET, key, value, oldValue);  // 触发后续微队列中的页面从渲染
 
@@ -283,6 +310,9 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   }
 }
 
+/**
+ * shallow  表示是否应用到目标对象的嵌套属性
+ */
 class ReadonlyReactiveHandler extends BaseReactiveHandler {
   constructor(shallow = false) {
     super(true, shallow);
@@ -296,7 +326,7 @@ class ReadonlyReactiveHandler extends BaseReactiveHandler {
 
   // 删除  直接返回true
   deleteProperty(target, key) {
-   
+
     return true;
   }
 }

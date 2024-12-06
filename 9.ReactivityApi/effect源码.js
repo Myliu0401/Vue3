@@ -39,6 +39,17 @@ export let activeEffect;
 export const ITERATE_KEY = Symbol(__DEV__ ? "iterate" : "");
 export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? "Map key iterate" : "");
 
+
+// 组件首次渲染时会先执行该函数创建副作用
+export function effect(fn, options = {}) {
+  const _effect = new ReactiveEffect(fn, options.scheduler);
+  if (!options.lazy) {
+    _effect.run(); // 在这里调用 .run()，并设置 activeEffect
+  }
+  return _effect;
+}
+
+
 // 追踪和管理响应式副作用的核心机制。它是Vue 3响应式系统的基础之一
 export class ReactiveEffect {
   active = true;
@@ -52,6 +63,7 @@ export class ReactiveEffect {
   onTrack;
   onTrigger;
 
+  // fn 通常是组件的render渲染函数
   constructor(fn, scheduler = null, scope) {
     recordEffectScope(this, scope); // 记录当前的副作用函数所属的作用域
     this.fn = fn;
@@ -74,7 +86,7 @@ export class ReactiveEffect {
 
     try {
       this.parent = activeEffect;
-      activeEffect = this;
+      activeEffect = this;  // 将当前的实例赋值到全局变量
       shouldTrack = true;
 
       trackOpBit = 1 << ++effectTrackDepth;
@@ -113,6 +125,13 @@ export class ReactiveEffect {
       }
       this.active = false;
     }
+  }
+}
+
+
+export function recordEffectScope(effect, scope = activeEffectScope) {
+  if (scope && scope.active) {
+    scope.effects.push(effect);
   }
 }
 
@@ -171,20 +190,21 @@ export function resetTracking() {
  * @param {*} key      属性名    在 target 对象中被访问的属性键
  */
 export function track(target, type, key) {
-
   // 判断是否有副作用实例
   if (shouldTrack && activeEffect) {
-    let depsMap = targetMap.get(target);  // 获取存储的数据
+    let depsMap = targetMap.get(target); // 获取存储的数据
 
+    // 判断是否没有依赖映射表
     if (!depsMap) {
       targetMap.set(target, (depsMap = new Map()));
     }
 
-    let dep = depsMap.get(key); 
+    // 获取属性的依赖映射表
+    let dep = depsMap.get(key);
 
     if (!dep) {
       // 创建 set数组
-      depsMap.set(key, (dep = createDep()));
+      depsMap.set(key, (dep = createDep()));  
     }
 
     const eventInfo = __DEV__
@@ -210,7 +230,9 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
 
       // 判断当前的副作用（activeEffect）是否已经存在于这个集合中
       shouldTrack = !wasTracked(dep);
+    
     }
+
   } else {
     shouldTrack = !dep.has(activeEffect); // 判断是否已有该作用域
   }
@@ -218,17 +240,18 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
   // 如果没有追踪则进行追踪
   if (shouldTrack) {
     dep.add(activeEffect); // 装载 作用域
-    activeEffect.deps.push(dep);
+    activeEffect.deps.push(dep); // 将映射项装载到作用域中
   }
+  
 }
 
 /**
  * 驱动更新
- * @param {*} target
- * @param {*} type
- * @param {*} key
- * @param {*} newValue
- * @param {*} oldValue
+ * @param {*} target      数据对象
+ * @param {*} type        类型
+ * @param {*} key         属性名
+ * @param {*} newValue    新数据
+ * @param {*} oldValue    旧数据
  * @param {*} oldTarget
  * @returns
  */
@@ -241,7 +264,8 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   let deps = [];
   if (type === TriggerOpTypes.CLEAR) {
     deps = [...depsMap.values()];
-  } else if (key === "length" && isArray(target)) {
+
+  } else if (key === "length" && isArray(target)) {  // 判断是否是数组并且获取的是长度
     const newLength = Number(newValue);
     depsMap.forEach((dep, key) => {
       if (key === "length" || (!isSymbol(key) && key >= newLength)) {
@@ -255,7 +279,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
 
     // 将原始数据的Map集合下，对应的属性的Set集合中的dep添加进去
     switch (type) {
-      case TriggerOpTypes.ADD:
+      case TriggerOpTypes.ADD:   // 类型为添加
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
           if (isMap(target)) {
@@ -265,15 +289,21 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
           deps.push(depsMap.get("length"));
         }
         break;
-      case TriggerOpTypes.DELETE:
+      case TriggerOpTypes.DELETE:  // 类型为删除
+       
+        // 是否不是数组
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
+
+          // 是否是map实例
           if (isMap(target)) {
             deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
           }
         }
         break;
-      case TriggerOpTypes.SET:
+      case TriggerOpTypes.SET:  // 类型为修改
+
+        // 判断参数是否为map实例
         if (isMap(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
         }
@@ -284,6 +314,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   const eventInfo = __DEV__
     ? { target, type, key, newValue, oldValue, oldTarget }
     : undefined;
+
 
   if (deps.length === 1) {
     if (deps[0]) {
@@ -308,8 +339,14 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   }
 }
 
+/**
+ * 
+ * @param {*} dep 
+ * @param {*} debuggerEventExtraInfo 
+ */
 export function triggerEffects(dep, debuggerEventExtraInfo) {
   const effects = isArray(dep) ? dep : [...dep];
+
   for (const effect of effects) {
     if (effect.computed) {
       triggerEffect(effect, debuggerEventExtraInfo);
@@ -321,7 +358,6 @@ export function triggerEffects(dep, debuggerEventExtraInfo) {
     }
   }
 }
-
 
 function triggerEffect(effect, debuggerEventExtraInfo) {
   if (effect !== activeEffect || effect.allowRecurse) {

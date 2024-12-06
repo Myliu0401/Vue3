@@ -149,7 +149,10 @@ class RefImpl {
   }
 };
 
-// 收集上下文实例
+/**
+ * 收集上下文实例
+ * @param {*} ref   为 RefImpl实例
+ */
 function trackRefValue(ref) {
   if (shouldTrack && activeEffect) {
     ref = toRaw(ref);  // 获取对象背后的原始数据的函数

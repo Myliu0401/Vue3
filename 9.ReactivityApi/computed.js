@@ -23,6 +23,7 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
 
   const onlyGetter = isFunction(getterOrOptions); // 判断是否是函数
 
+  // 判断第一个参数是否是函数
   if (onlyGetter) {
     getter = getterOrOptions; // 读取时的函数
     setter = NOOP;  // 占位的空函数 
@@ -47,16 +48,17 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
 
 
 /**
- * getter  读取时的函数
- * _setter   修改时的函数
+ * getter   读取时的函数
+ * _setter  修改时的函数
+ * isReadonly   是否只读
+ * isSSR    是否是服务端渲染
  */
  class ComputedRefImpl {
   constructor(getter, _setter, isReadonly, isSSR) {
 
     this.dep = undefined;
 
-    this._value = undefined;
-
+    this._value = undefined; 
 
     // 创建追踪响应式数据的类
     this.effect = new ReactiveEffect(getter, () => {
@@ -70,11 +72,14 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
 
     this.effect.computed = this;
 
-    this.effect.active = (this._cacheable = !isSSR);
+    /* 
+       this._cacheable  表示计算属性是否可以缓存
+    */
+    this.effect.active = (this._cacheable = !isSSR);  
 
-    this.__v_isRef = true;
+    this.__v_isRef = true; // 表示对象是一个ref的响应式对象
 
-    this[ReactiveFlags.IS_READONLY] = isReadonly;
+    this[ReactiveFlags.IS_READONLY] = isReadonly;  // 是否是只读的
 
     this._dirty = true; // 是否为脏值，也就是是否更新
 
@@ -102,8 +107,6 @@ function computed(getterOrOptions, debugOptions, isSSR = false) {
     this._setter(newValue);
   }
 };
-
-
 
 
 
@@ -200,10 +203,16 @@ class ReactiveEffect {
 };
 
 
-// 将副作用添加到当前的作用域中
+/**
+ * 将副作用添加到当前的作用域中
+ * @param {*} effect  ReactiveEffect 实例
+ * @param {*} scope   当前副作用
+ */
 function recordEffectScope(effect, scope = activeEffectScope) {
+
+  // 是否有ReactiveEffect实例，并且当前副作用是否处于激活状态
   if (scope && scope.active) {
-    scope.effects.push(effect);
+    scope.effects.push(effect);  // 将计算属性的ReactiveEffect实例添加到当前激活的副作用中
   }
 };
 
@@ -217,7 +226,11 @@ function trackRefValue(ref) {
 };
 
 
-
+/**
+ * 收集依赖
+ * @param {*} dep   为依赖集合，每一项为 ReactiveEffect 对象
+ * @param {*} debuggerEventExtraInfo 
+ */
 export function trackEffects(dep, debuggerEventExtraInfo) {
   let shouldTrack = false;
   if (effectTrackDepth <= maxMarkerBits) {

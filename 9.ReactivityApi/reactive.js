@@ -34,7 +34,7 @@ const TargetType = {
 
 // 判断该数据是否是通过readonly创建的
 function isReadonly(value) {
-  return value.__v_readonly;
+  return value.__v_readonly; // 是不是只读的
 }
 
 // 创建响应式数据
@@ -52,6 +52,7 @@ export function reactive(target) {
     mutableCollectionHandlers,
     reactiveMap
   );
+
 }
 
 // 创建只读的代理对象
@@ -70,7 +71,7 @@ export function readonly(target) {
  * @param {*} target     数据
  * @param {*} isReadonly 是否是只读
  * @param {*} baseHandlers  代理的配置对象
- * @param {*} collectionHandlers
+ * @param {*} collectionHandlers  集合类型 Map、Set、WeakMap、WeakSet
  * @param {*} proxyMap
  * @returns
  */
@@ -90,15 +91,17 @@ function createReactiveObject(
    * target[ReactiveFlags.RAW]  是否是代理对象
    * isReadonly  是否是只读
    * target[ReactiveFlags.IS_REACTIVE]  是否是响应式对象
+   *
+   * 如果原始数据已经是代理对象并且 (isReadonly为false或者不是只读对象)
    */
   if (
     target[ReactiveFlags.RAW] &&
     !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
   ) {
-    return target;
+    return target; // 直接返回原始数据
   }
 
-  const existingProxy = proxyMap.get(target); // 是否已有该数据
+  const existingProxy = proxyMap.get(target); // 是否已经代理过该数据
   if (existingProxy) {
     return existingProxy; // 直接返回
   }
@@ -109,11 +112,10 @@ function createReactiveObject(
     return target;
   }
 
-
   /**
    * 进行代理
    * COLLECTION 一般表示“集合”或“群组”的概念
-   * 一般第二个参数都为 baseHandlers 
+   * 一般第二个参数都为 baseHandlers
    */
   const proxy = new Proxy(
     target,
@@ -178,8 +180,8 @@ class BaseReactiveHandler {
    * @returns
    */
   get(target, key, receiver) {
-    const isReadonly = this._isReadonly,
-      shallow = this._shallow;
+    const isReadonly = this._isReadonly,  // 是否只读
+      shallow = this._shallow; // 是否是浅层代理
 
     // 判断 是否是 访问特定属性
     if (key === ReactiveFlags.IS_REACTIVE) {
@@ -194,14 +196,9 @@ class BaseReactiveHandler {
     } else if (key === ReactiveFlags.RAW) {
       // 判断代理对象是否等于创建数据时存起来的代理对象 或者 原始数据中的原型是否等于代理对象的原型
       if (
-        receiver ===
-          (isReadonly
-            ? shallow
-              ? shallowReadonlyMap
-              : readonlyMap
-            : shallow
-            ? shallowReactiveMap
-            : reactiveMap
+        receiver === (
+          isReadonly ? shallow ? shallowReadonlyMap : readonlyMap : 
+          shallow ? shallowReactiveMap : reactiveMap
           ).get(target) ||
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
@@ -225,8 +222,9 @@ class BaseReactiveHandler {
       }
     }
 
-    const res = Reflect.get(target, key, receiver); // 获取该属性
+    const res = Reflect.get(target, key, receiver); // 进行反射，获取该属性
 
+    // 判断属性是否是symbol类型的
     if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
       return res;
     }
@@ -236,6 +234,10 @@ class BaseReactiveHandler {
       track(target, TrackOpTypes.GET, key); // 收集依赖
     }
 
+    /**
+     * 是否是浅层响应式
+     * 浅层响应式对象，表示只对响应式的数据和顶层属性进代理
+     */
     if (shallow) {
       return res;
     }
@@ -247,14 +249,17 @@ class BaseReactiveHandler {
 
     // 判断是否是引用类型的
     if (isObject(res)) {
-      return isReadonly ? readonly(res) : reactive(res); // 继续代理
+      return isReadonly ? readonly(res) : reactive(res); // 进行递归
     }
 
-    return res;
+    return res; // 返回数据
   }
 }
 
-//   reactive代理对象的配置实例
+/**
+ * 进行继承BaseReactiveHandler
+ * reactive代理对象的配置实例
+ */
 class MutableReactiveHandler extends BaseReactiveHandler {
   constructor(shallow = false) {
     super(false, shallow);
