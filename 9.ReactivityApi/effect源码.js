@@ -39,7 +39,6 @@ export let activeEffect;
 export const ITERATE_KEY = Symbol(__DEV__ ? "iterate" : "");
 export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? "Map key iterate" : "");
 
-
 // 组件首次渲染时会先执行该函数创建副作用
 export function effect(fn, options = {}) {
   const _effect = new ReactiveEffect(fn, options.scheduler);
@@ -48,7 +47,6 @@ export function effect(fn, options = {}) {
   }
   return _effect;
 }
-
 
 // 追踪和管理响应式副作用的核心机制。它是Vue 3响应式系统的基础之一
 export class ReactiveEffect {
@@ -86,7 +84,7 @@ export class ReactiveEffect {
 
     try {
       this.parent = activeEffect;
-      activeEffect = this;  // 将当前的实例赋值到全局变量
+      activeEffect = this; // 将当前的实例赋值到全局变量
       shouldTrack = true;
 
       trackOpBit = 1 << ++effectTrackDepth;
@@ -97,8 +95,24 @@ export class ReactiveEffect {
         cleanupEffect(this);
       }
 
-      return this.fn();
+      return this.fn(); // 执行渲染组件
     } finally {
+      /* 
+          finally 块总会执行：
+            即使 try 块中执行了 return，或者 catch 块中执行了 return，
+            finally 块也一定会在 return 之后、函数真正返回值之前执行。
+
+          return 和 finally 的交互：
+            当 try 或 catch 中执行 return 时，函数的返回值已经确定，但在返回之前，finally 会被执行。
+            如果 finally 中不包含 return，try 或 catch 中的 return 结果会作为函数的返回值。
+            如果 finally 中包含 return，它会覆盖之前的返回值。
+            
+          try和catch
+            如果try中执行了return 并且发生了错误，catche也一定会执行，如果有finally的话，也会执行
+
+      
+      */
+
       if (effectTrackDepth <= maxMarkerBits) {
         finalizeDepMarkers(this);
       }
@@ -127,7 +141,6 @@ export class ReactiveEffect {
     }
   }
 }
-
 
 export function recordEffectScope(effect, scope = activeEffectScope) {
   if (scope && scope.active) {
@@ -204,7 +217,7 @@ export function track(target, type, key) {
 
     if (!dep) {
       // 创建 set数组
-      depsMap.set(key, (dep = createDep()));  
+      depsMap.set(key, (dep = createDep()));
     }
 
     const eventInfo = __DEV__
@@ -230,9 +243,7 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
 
       // 判断当前的副作用（activeEffect）是否已经存在于这个集合中
       shouldTrack = !wasTracked(dep);
-    
     }
-
   } else {
     shouldTrack = !dep.has(activeEffect); // 判断是否已有该作用域
   }
@@ -242,7 +253,6 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
     dep.add(activeEffect); // 装载 作用域
     activeEffect.deps.push(dep); // 将映射项装载到作用域中
   }
-  
 }
 
 /**
@@ -256,16 +266,20 @@ export function trackEffects(dep, debuggerEventExtraInfo) {
  * @returns
  */
 export function trigger(target, type, key, newValue, oldValue, oldTarget) {
-  const depsMap = targetMap.get(target); // 获取原始对象数据的 Map集合
+
+  const depsMap = targetMap.get(target); // 获取原始对象数据的 Map集合，因为收集依赖时会为原生数据创建一个map集合
+
   if (!depsMap) {
     return;
   }
 
   let deps = [];
+
+  // 是否为清除类型
   if (type === TriggerOpTypes.CLEAR) {
     deps = [...depsMap.values()];
-
-  } else if (key === "length" && isArray(target)) {  // 判断是否是数组并且获取的是长度
+  } else if (key === "length" && isArray(target)) {
+    // 判断是否是数组并且获取的是长度
     const newLength = Number(newValue);
     depsMap.forEach((dep, key) => {
       if (key === "length" || (!isSymbol(key) && key >= newLength)) {
@@ -279,7 +293,9 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
 
     // 将原始数据的Map集合下，对应的属性的Set集合中的dep添加进去
     switch (type) {
-      case TriggerOpTypes.ADD:   // 类型为添加
+      case TriggerOpTypes.ADD: // 类型为添加
+
+        // 是否不是数组
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
           if (isMap(target)) {
@@ -289,8 +305,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
           deps.push(depsMap.get("length"));
         }
         break;
-      case TriggerOpTypes.DELETE:  // 类型为删除
-       
+      case TriggerOpTypes.DELETE: // 类型为删除
         // 是否不是数组
         if (!isArray(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
@@ -301,8 +316,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
           }
         }
         break;
-      case TriggerOpTypes.SET:  // 类型为修改
-
+      case TriggerOpTypes.SET: // 类型为修改
         // 判断参数是否为map实例
         if (isMap(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
@@ -314,7 +328,6 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   const eventInfo = __DEV__
     ? { target, type, key, newValue, oldValue, oldTarget }
     : undefined;
-
 
   if (deps.length === 1) {
     if (deps[0]) {
@@ -340,9 +353,9 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
 }
 
 /**
- * 
- * @param {*} dep 
- * @param {*} debuggerEventExtraInfo 
+ *
+ * @param {*} dep
+ * @param {*} debuggerEventExtraInfo
  */
 export function triggerEffects(dep, debuggerEventExtraInfo) {
   const effects = isArray(dep) ? dep : [...dep];
