@@ -1,5 +1,12 @@
 
 
+const TargetType = {
+  INVALID: 0, // 表示无效的目标类型 如  null undefined
+  COMMON: 1,  // 表示普通对象类型
+  COLLECTION: 2 // 表示集合类型 如 Map、Set 等
+}
+
+
 // 创建一个ref数据
 export function ref(value) {
   return createRef(value, false); // 创建refimpl实例
@@ -12,23 +19,23 @@ function createRef(rawValue, shallow) {
   if (isRef(rawValue)) {
     return rawValue; // 直接返回rsf对象
   }
+  
   return new RefImpl(rawValue, shallow); // 创建RefImpl实例
 };
 
 // 通常用于确保对原始数据的直接访问而不触发 Vue 的响应式机制
 function toRaw(value) {
-
+   
    /* 
        __v_raw  属性返回 reactive 和 readonly 的原始数据
    */
-
   return value && value.__v_raw ? value.__v_raw : value;
 
 };
 
 // 继续代理
 function toReactive(value) {
-  return reactive(value);
+  return reactive(value); // 进行代理
 };
 
 
@@ -55,7 +62,7 @@ function reactive(target) {
  * 创建实例对象
  * @param {*} target              原始对象 
  * @param {*} isReadonly          是否只读
- * @param {*} baseHandlers       
+ * @param {*} baseHandlers        
  * @param {*} collectionHandlers 
  * @param {*} proxyMap 
  * @returns 
@@ -83,8 +90,11 @@ function createReactiveObject(
     return existingProxy;
   };
 
-  // 判断是否是原始类型 
+  
+  // 获取代理数据的类型
   const targetType = getTargetType(target);
+  
+  // 是否是无效数据 如 null、undefined
   if (targetType === TargetType.INVALID) {
     return target;
   };
@@ -110,6 +120,8 @@ function createReactiveObject(
  * @returns 
  */
 function hasChanged(newValue, oldValue){
+
+   // 
    return !Object.is(newValue, oldValue);
 };
 
@@ -125,7 +137,7 @@ class RefImpl {
   get value() {
     trackRefValue(this);  // 收集 组件或页面上下文实例
 
-    return this._value;
+    return this._value; // 返回数据
   }
 
   // newVal为新数据
@@ -141,10 +153,12 @@ class RefImpl {
 
     // 判断新旧数据是否不一致
     if (hasChanged(newVal, this._rawValue)) {
+
       this._rawValue = newVal; // 存储新数据组
       this._value = useDirectValue ? newVal : toReactive(newVal); // 继续代理
 
       triggerRefValue(this, newVal); // 进行驱动更新
+
     }
   }
 };
@@ -154,10 +168,14 @@ class RefImpl {
  * @param {*} ref   为 RefImpl实例
  */
 function trackRefValue(ref) {
+
+  // 当前副作用是否激活并且有副作用
   if (shouldTrack && activeEffect) {
     ref = toRaw(ref);  // 获取对象背后的原始数据的函数
     trackEffects(ref.dep || (ref.dep = createDep()));  // createDep 创建一个set实例，用于存储vue实例
   }
+
+
 }
 
 
@@ -170,13 +188,16 @@ function triggerRefValue(ref, newVal) {
   ref = toRaw(ref);  // 获取原始数据
   const dep = ref.dep;
 
-  triggerEffects(dep);
-
+  triggerEffects(dep); 
 
 };
 
 
-// 收集当前激活的副作用
+/**
+ * 收集当前激活的副作用
+ * @param {*} dep 
+ * @param {*} debuggerEventExtraInfo 
+ */
 function trackEffects(dep, debuggerEventExtraInfo) {
   let shouldTrack = false;
   if (effectTrackDepth <= maxMarkerBits) {
@@ -188,10 +209,10 @@ function trackEffects(dep, debuggerEventExtraInfo) {
     shouldTrack = !dep.has(activeEffect);  // 判断是否已有该作用域
   }
 
+  // 判断当前是否有激活的副作用
   if (shouldTrack) {
     dep.add(activeEffect); // 装载 当前激活作用域
     activeEffect.deps.push(dep); // 将自己的set数组也添加到副作用的实例中
-
   }
 };
 
@@ -207,6 +228,8 @@ function triggerEffects(dep, debuggerEventExtraInfo) {
 
   // 进行循环
   for (const effect of effects) {
+
+    // computed一般是计算属性的函数
     if (effect.computed) {
       triggerEffect(effect, debuggerEventExtraInfo);
     }

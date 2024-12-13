@@ -70,7 +70,7 @@ export class ReactiveEffect {
 
   run() {
     if (!this.active) {
-      return this.fn();
+      return this.fn(); // 执行render渲染函数
     }
     let parent = this.parent;
     let lastShouldTrack = shouldTrack;
@@ -287,8 +287,10 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
       }
     });
   } else {
+
+    // 判断key是否不是undefined
     if (key !== void 0) {
-      deps.push(depsMap.get(key));
+      deps.push(depsMap.get(key));  // 获取
     }
 
     // 将原始数据的Map集合下，对应的属性的Set集合中的dep添加进去
@@ -317,6 +319,7 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
         }
         break;
       case TriggerOpTypes.SET: // 类型为修改
+
         // 判断参数是否为map实例
         if (isMap(target)) {
           deps.push(depsMap.get(ITERATE_KEY));
@@ -352,6 +355,8 @@ export function trigger(target, type, key, newValue, oldValue, oldTarget) {
   }
 }
 
+
+
 /**
  *
  * @param {*} dep
@@ -380,6 +385,11 @@ function triggerEffect(effect, debuggerEventExtraInfo) {
       effect.run(); // 触发重渲染
     }
   }
+}
+
+// 判断数据是否是map类型
+function isMap(value) {
+  return Object.prototype.toString.call(value) === '[object Map]';
 }
 
 export function getDepFromReactive(object, key) {
