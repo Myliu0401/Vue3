@@ -27,9 +27,9 @@ export const shallowReadonlyMap = new WeakMap();
 export const targetMap = new WeakMap();
 
 const TargetType = {
-  INVALID: 0,
-  COMMON: 1,
-  COLLECTION: 2,
+  INVALID: 0, // 无效的目标类型  null、undefined
+  COMMON: 1, // 普通目标类型
+  COLLECTION: 2, // 集合类型  如 Set、Map
 };
 
 // 判断该数据是否是通过readonly创建的
@@ -37,9 +37,14 @@ function isReadonly(value) {
   return value.__v_readonly; // 是不是只读的
 }
 
-// 创建响应式数据
+/**
+ * 创建响应式数据
+ * @param {*} target   数据 
+ * @returns 
+ */
 export function reactive(target) {
-  // 检查新值 数据 是否是只读的响应式对象
+  
+  // 判断数据是否是通过readonly创建的只读数据
   if (isReadonly(target)) {
     return target;
   }
@@ -72,7 +77,7 @@ export function readonly(target) {
  * @param {*} isReadonly 是否是只读
  * @param {*} baseHandlers  代理的配置对象
  * @param {*} collectionHandlers  集合类型 Map、Set、WeakMap、WeakSet
- * @param {*} proxyMap
+ * @param {*} proxyMap  WeakMap  实例
  * @returns
  */
 function createReactiveObject(
@@ -82,6 +87,7 @@ function createReactiveObject(
   collectionHandlers,
   proxyMap
 ) {
+
   // 判断是否不是引用类型
   if (!isObject(target)) {
     return target;
@@ -108,13 +114,15 @@ function createReactiveObject(
 
   // 获取对象是否不可代理或不可扩展或数据不是引用类型
   const targetType = getTargetType(target);
+
+  // 是否是无效类型
   if (targetType === TargetType.INVALID) {
     return target;
   }
 
   /**
    * 进行代理
-   * COLLECTION 一般表示“集合”或“群组”的概念
+   * COLLECTION 集合类型  如  Set、Map
    * 一般第二个参数都为 baseHandlers
    */
   const proxy = new Proxy(
@@ -155,16 +163,18 @@ function targetTypeMap(rawType) {
   switch (rawType) {
     case "Object":
     case "Array":
-      return TargetType.COMMON;
+      return TargetType.COMMON; // 普通对象类型
     case "Map":
     case "Set":
     case "WeakMap":
     case "WeakSet":
-      return TargetType.COLLECTION;
+      return TargetType.COLLECTION; // 集合类型
     default:
-      return TargetType.INVALID;
+      return TargetType.INVALID; // 无效类型
   }
 }
+
+
 
 class BaseReactiveHandler {
   constructor(_isReadonly = false, _shallow = false) {
@@ -173,7 +183,7 @@ class BaseReactiveHandler {
   }
 
   /**
-   * 获取属性
+   * 获取属性时触发
    * @param {*} target    原始对象
    * @param {*} key       属性名
    * @param {*} receiver  代理对象
@@ -202,7 +212,7 @@ class BaseReactiveHandler {
           ).get(target) ||
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
-        return target;
+        return target; // 返回原始对象
       }
       return;
     }
@@ -217,6 +227,8 @@ class BaseReactiveHandler {
       if (targetIsArray && hasOwn(arrayInstrumentations, key)) {
         return Reflect.get(arrayInstrumentations, key, receiver); // 获取该属性
       }
+
+      // 是否是获取特殊属性
       if (key === "hasOwnProperty") {
         return hasOwnProperty;
       }
@@ -244,6 +256,8 @@ class BaseReactiveHandler {
 
     // 判断是否是ref对象
     if (isRef(res)) {
+
+      // 是否是数组并且是属性有效果的数值
       return targetIsArray && isIntegerKey(key) ? res : res.value;
     }
 
